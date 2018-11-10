@@ -1,0 +1,25 @@
+##### sendmail2mailgun usecase configuration
+# Defines a profile for a sendmail2mailgun use case
+
+### General
+# name: usecase name - included in the logs for log interpretation & forensics  
+name=""
+
+# mailgun_api_account_name: name of the Mailgun API account configuration to use
+mailgun_api_account_name=""
+
+### Mailing defaults
+# In case static values are used for the sender, recipient or subject they can be set here to avoid to 
+# have to repeat them in the piped input on every call. If defaults are provided they are overwritten 
+# by eventual piped input equivalents. Recipient can also be overwritten by a parameter, details can be 
+# found in the main documentation
+
+# default_sender: 'from' field. Can be a email address or the format "Identity <mail@example.com>"
+default_sender=""
+
+# default_receipient: 'to' field. Can be a email address or a comma-separated list of several email addresses 
+default_recipient=""
+
+# default_receipient: 'subject' field. Text only, even if a HTML body is used.
+default_subject=""
+

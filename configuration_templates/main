@@ -1,0 +1,11 @@
+##### Main sendmail2mailgun configuration
+
+### Folders
+# mailgun_api_account_configurations_folder: absolute path of the folder where the Mailgun API account configuration files are
+mailgun_api_account_configurations_folder="/etc/sendmail2mailgun/mailgun_api_account_configurations"
+
+# usecase_configurations_folder: absolute path of the folder where the usecase configuration files are
+usecase_configurations_folder="/etc/sendmail2mailgun/usecase_configurations"
+
+# log_filepath: absolute filepath of the log file location. To disable logging, set to /dev/null
+log_filepath="/var/log/sendmail2mailgun.log"

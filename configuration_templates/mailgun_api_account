@@ -1,0 +1,10 @@
+##### Mailgun API account configuration
+
+### Credentials
+# Provided by the Mailgun web interface
+
+# domain: format <your_domain>.mailgun.org
+domain=""
+
+# api_key: has the format of a 50 character string composed of alphanumeric characters and '-'
+api_key=""
