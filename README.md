@@ -13,8 +13,8 @@ This is the mail body.
 ```
 printf "From: ...\nTo: ...\nSubject:...\nMail body" | sendmail2mailgun
 ```
-In order to work, `sendmail2mailgun` needs the Mailgun API account settings (domain + key). For security reasons the key can't 
-be provided as runtime parameter (visibility in the logs), it has to be provided through a file. 
+To be able to use the Mailgun API, sendmail2mailgun needs the domain and key to use. For security reasons the key can't be a runtime 
+parameter (visibility in the logs), it has to be provided through a file. 
 
 # Configuration
 `sendmail2mailgun`'s configuration options are:
@@ -25,11 +25,11 @@ be provided as runtime parameter (visibility in the logs), it has to be provided
 `sendmail2mailgun` is able to work in two different modes for greatest flexibility:
 - the "configuration file less" - called runtime - mode: the only file used is the keyfile for the Mailgun API. The flags 
   `--domain <domain> --keyfile <filepath>` are compulsory
-- the normal mode, with a global configuration file and possible further ramifications
+- the normal file-based mode, with a global configuration file and possible further ramifications
 
-The default mode can be selected at installation time and it can be overwritten at runtime using the `--cfg` flag:
-- if it's in runtime mode, `--cfg <filepath>` makes it switch to normal mode
-- if it's in normal mode, `--cfg ""` makes it switch it to runtime mode, `--cfg <filepath>` overwrites the filepath used by default
+The default mode can be selected at installation time and it can be overwritten at runtime using:
+- `--cfg <filepath>` to switch to normal mode and read `filepath` as global configuration file
+- `--cfg ""` to switch it to runtime mode
 
 ## File-based configuration
 In normal mode, `sendmail2mailgun` loads the global configuration file (`--cfg` flag overwrites default location). To be able to adapt 
@@ -38,7 +38,15 @@ with **usecase configurations**. These replicate and overwrite the global config
 log analytics. Likewise, in case several Mailgun API accounts are (re)used accross the different configuration files, these may stored 
 in dedicated files and addressed by name.
 
-These different configuration files are described here, templates may be found here.
+Every configuration file type is explained in detail below, templates may be found here.
+
+### Global configuration
+Variable definitions:
+- `mailgun_domain` and `mailgun_api_key`
+- `log_filepath`
+- `default_sender`, `default_recipient`, `default_subject`
+- `mailgun_api_account_configurations_folder`
+- `usecase_configurations_folder`
 
 ### Usecase configurations
 A usecase configuration file may either be specified by `--uc- <filpath>` or using the flag `-uc <name>` if 
@@ -52,6 +60,10 @@ Variable definitions:
  
 ### Mailgun API account configurations
 - *Mailgun account configurations* in `mailgun_api_account_configurations_folder`
+
+Variable definitions are taken into account in this type of file:
+- `domain`
+- `key`
 
 # Logging
 `sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and classic file logging, each with 
