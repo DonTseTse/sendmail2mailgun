@@ -3,7 +3,7 @@ Bash script handling sendmail input to send mails over Mailgun's HTTP API
 
 # Introduction
 `sendmail2mailgun` is a bash script that allows to send mails over the Mailgun API. It can be a useful alternative if the 
-usual mailing infrastructure is not available or desirable. The sendmail format encodes the mail variables as [key]: [value]
+usual mailing infrastructure is not available or desirable. The sendmail format encodes the mail variables as `<key>:<value>`
 headers, with everything else beeing the mail body: 
 ```
 From: <The Sender>sender@example.com
@@ -15,20 +15,29 @@ This is the mail body.
 ```
 printf "From: ...\nTo: ...\nSubject:...\nMail body" | sendmail2mailgun
 ```
+In order to work, `sendmail2mailgun` needs the Mailgun API account settings (domain + key). For security reasons the key can't 
+be provided as runtime parameter (visibility in the logs), it has to be provided through a file. 
+
+TODO logging + defaults
 
 # Configuration
-`sendmail2mailgun`'s configuration options are:
+To summarize, `sendmail2mailgun`'s configuration options are:
 - Mailgun API account settings: domain + key
 - Log filepath
 - Mailing defaults: sender, recipient(s), subject
 
-There are no runtime parameters for the Mailgun account settings for security reasons (visibility of the key in the logs); 
-they have to be retrieved from a file. 
+`sendmail2mailgun` is able to work in two different modes for greatest flexibility:
+- the "configuration file less" mode: in this mode, the flags `--domain <domain> --keyfile <filepath>` are compulsory
+- the normal mode, with a global configuration file and possible further ramifications
+The default mode can be selected at installation time and it can be overwritten at runtime using the `--cfg` flag:
+- if it's in "configuration file less" mode, `--cfg <filepath>` makes it switch to normal mode
+- if it's in normal mode, `--cfg ""` makes it switch it to "configuration file less" mode, `--cfg <filepath>` overwrites the
+  configuration file used by default
 
 To be able to adapt these configurations easily in case `sendmail2mailgun` is used in different contexts and/or with
 several Mailgun API accounts, the main aka global configuration may be extended with:
 - Mailgun API account configurations
-- usecase configurations
+- usecase configurations: flags `-uc <usecase name>`
 
 ## Configuration file description
 
