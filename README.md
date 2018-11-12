@@ -45,8 +45,11 @@ Variable definitions:
 - `mailgun_domain` and `mailgun_api_key`
 - `log_filepath`
 - `default_sender`, `default_recipient`, `default_subject`
-- `mailgun_api_account_configurations_folder`
 - `usecase_configurations_folder`
+- `mailgun_api_account_configurations_folder`
+
+`usecase_configurations_folder` and `mailgun_api_account_configurations_folder` are used to indicate where the respective configuration 
+files are stored. 
 
 ### Usecase configurations
 A usecase configuration file may either be specified by `--uc- <filpath>` or using the flag `-uc <name>` if 
@@ -59,6 +62,8 @@ Variable definitions:
 - `mailgun_api_account_name`
  
 ### Mailgun API account configurations
+A Mailgun API account configuration file may either be specified by `--uc- <filpath>` or using the flag `-uc <name>` if
+`usecase_configurations_folder` is defined in the global configuration file.
 - *Mailgun account configurations* in `mailgun_api_account_configurations_folder`
 
 Variable definitions are taken into account in this type of file:
@@ -72,7 +77,7 @@ By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_leve
 `log_filepath` is set.
 
 # Parametrization
-send2mail2mailgun has a range of essential internal parameters:
+sendmail2mailgun has a range of essential internal parameters:
 - `mail_uses_html_body`: defaults to 0/false for a text body. Enable with the flag `-html`
 - `stdout_log_level`: defaults to 0/disabled. Enable with the flag `-v`
 - `log_filepath`: can be set through many ways, in the order of precendence
@@ -80,6 +85,32 @@ send2mail2mailgun has a range of essential internal parameters:
 	+ in the usecase configuration
 	+ in the global configuration
 - `log_level`: defaults to 1 (normal logging)
+	+ `--log-level <level>` flag
+	+ in the usecase configuration
+        + in the global configuration
+- configuration_filepath: 
+	+ `--cfg <filepath>`
+	+ default set on installation
+- `domain`
+	+ `--domain <domain>`
+	+ `domain` in a Mailgun account configuration
+	+ `mailgun_api_account_domain` in the global configuration
+- `api_key`
+	+ `--keyfile <filepath>`
+	+ `key` in a Mailgun account configuration
+        + `mailgun_api_account_key` in the global configuration
+- `sender`
+	+ extracted from the sendmail input
+	+ `default_sender` from a usecase configuration
+	+ `default_sender` from the global configuration
+- `recipient`
+	+ extracted from the sendmail input
+	+ `default_recipient` from a usecase configuration
+        + `default_recipient` from the global configuration
+- `subject`
+	+ extracted from the sendmail input
+	+ `default_subject` from a usecase configuration
+        + `default_subject` from the global configuration
 
 # Installer
 TODO 
