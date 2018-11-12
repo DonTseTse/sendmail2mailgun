@@ -38,7 +38,7 @@ with **usecase configurations**. These replicate and overwrite the global config
 log analytics. Likewise, in case several Mailgun API accounts are (re)used accross the different configuration files, these may stored 
 in dedicated files and addressed by name.
 
-Every configuration file type is explained in detail below, templates may be found here.
+Every configuration file type is explained in detail below, templates may be found [here](../blob/master/configuration_templates)
 
 ### Global configuration
 Variable definitions:
@@ -77,8 +77,6 @@ By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_leve
 
 # Parametrization
 sendmail2mailgun has a range of essential internal parameters:
-- `mail_uses_html_body`: defaults to 0/false for a text body. Enable with the flag `-html`
-- `stdout_log_level`: defaults to 0/disabled. Enable with the flag `-v`
 - `log_filepath`: can be set through many ways, in the order of precendence
 	+ `--log-filepath <filepath>` flag
 	+ in the usecase configuration
@@ -87,7 +85,8 @@ sendmail2mailgun has a range of essential internal parameters:
 	+ `--log-level <level>` flag
 	+ in the usecase configuration
 	+ in the global configuration
-- configuration_filepath: 
+- `stdout_log_level`: defaults to 0/disabled. Enable with the flag `-v`
+- `configuration_filepath`: 
 	+ `--cfg <filepath>`
 	+ default set on installation
 - `domain`
@@ -98,18 +97,12 @@ sendmail2mailgun has a range of essential internal parameters:
 	+ `--keyfile <filepath>`
 	+ `key` in a Mailgun account configuration
 	+ `mailgun_api_account_key` in the global configuration
-- `sender`
+- `mail_uses_html_body`: defaults to 0/false for a text body. Enable with the flag `-html`
+- `sender` / `recipient` / `subject`: 
 	+ extracted from the sendmail input
-	+ `default_sender` from a usecase configuration
-	+ `default_sender` from the global configuration
-- `recipient`
-	+ extracted from the sendmail input
-	+ `default_recipient` from a usecase configuration
-	+ `default_recipient` from the global configuration
-- `subject`
-	+ extracted from the sendmail input
-	+ `default_subject` from a usecase configuration
-	+ `default_subject` from the global configuration
+	+ `default_<x>` from a usecase configuration
+	+ `default_<x>` from the global configuration
+- `mail_body`: extracted from the sendmail input
 
 # Installer
 TODO 
