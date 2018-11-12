@@ -1,10 +1,8 @@
-# sendmail2mailgun
-Bash script handling sendmail input to send mails over Mailgun's HTTP API
-
 # Introduction
-`sendmail2mailgun` is a bash script that allows to send mails over the Mailgun API. It can be a useful alternative if the 
-usual mailing infrastructure is not available or desirable. The sendmail format encodes the mail variables as `<key>:<value>`
-headers, with everything else beeing the mail body: 
+`sendmail2mailgun` is a bash script that is able to handle sendmail input to send mails over Mailgun's HTTP API. It can be a useful 
+alternative if the usual mailing infrastructure is not available or desirable. 
+
+The sendmail format encodes the mail variables as `<key>:<value>` headers, with everything else beeing the mail body: 
 ```
 From: <The Sender>sender@example.com
 To: receiver@example.com
@@ -18,7 +16,11 @@ printf "From: ...\nTo: ...\nSubject:...\nMail body" | sendmail2mailgun
 In order to work, `sendmail2mailgun` needs the Mailgun API account settings (domain + key). For security reasons the key can't 
 be provided as runtime parameter (visibility in the logs), it has to be provided through a file. 
 
-TODO logging + defaults
+# Logging
+`sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and classic file logging, each with 
+their own logging level.
+By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_level` to 1. Whether file logging occurs depend if
+`log_filepath` is set. 
 
 # Configuration
 To summarize, `sendmail2mailgun`'s configuration options are:
@@ -63,7 +65,13 @@ The following variable definitions are taken into account in this type of file:
 - `log_filepath`
 - `default_sender`, `default_recipient`, `default_subject`
 
+# Logging
+`sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and classic file logging, each with 
+their own logging level.
+By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_level` to 1. Whether file logging occurs depend if
+`log_filepath` is set.
 
+----------------------------
 
 
 
