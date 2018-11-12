@@ -52,7 +52,7 @@ Variable definitions:
 files are stored. 
 
 ### Usecase configurations
-A usecase configuration file may either be specified by `--uc- <filpath>` or using the flag `-uc <name>` if 
+A usecase configuration file may either be specified by `--uc-cfg <filpath>` or using the flag `-uc <name>` if 
 `usecase_configurations_folder` is defined in the global configuration file.  
 
 Variable definitions:
@@ -62,9 +62,8 @@ Variable definitions:
 - `mailgun_api_account_name`
  
 ### Mailgun API account configurations
-A Mailgun API account configuration file may either be specified by `--uc- <filpath>` or using the flag `-uc <name>` if
-`usecase_configurations_folder` is defined in the global configuration file.
-- *Mailgun account configurations* in `mailgun_api_account_configurations_folder`
+A Mailgun API account configuration file may either be specified by `--mg-api-acc-cfg <filpath>` or in the usecase definition using 
+`mailgun_account_name` if `mailgun_api_account_configurations_folder` is defined in the global configuration file.
 
 Variable definitions are taken into account in this type of file:
 - `domain`
@@ -87,7 +86,7 @@ sendmail2mailgun has a range of essential internal parameters:
 - `log_level`: defaults to 1 (normal logging)
 	+ `--log-level <level>` flag
 	+ in the usecase configuration
-        + in the global configuration
+	+ in the global configuration
 - configuration_filepath: 
 	+ `--cfg <filepath>`
 	+ default set on installation
@@ -98,7 +97,7 @@ sendmail2mailgun has a range of essential internal parameters:
 - `api_key`
 	+ `--keyfile <filepath>`
 	+ `key` in a Mailgun account configuration
-        + `mailgun_api_account_key` in the global configuration
+	+ `mailgun_api_account_key` in the global configuration
 - `sender`
 	+ extracted from the sendmail input
 	+ `default_sender` from a usecase configuration
@@ -106,11 +105,11 @@ sendmail2mailgun has a range of essential internal parameters:
 - `recipient`
 	+ extracted from the sendmail input
 	+ `default_recipient` from a usecase configuration
-        + `default_recipient` from the global configuration
+	+ `default_recipient` from the global configuration
 - `subject`
 	+ extracted from the sendmail input
 	+ `default_subject` from a usecase configuration
-        + `default_subject` from the global configuration
+	+ `default_subject` from the global configuration
 
 # Installer
 TODO 
