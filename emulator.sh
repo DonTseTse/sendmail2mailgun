@@ -275,13 +275,10 @@ done
 # Load "main" configuration if applicable
 if [ ! -z "$configuration_filepath" ]; then
 	if [ -f "$configuration_filepath" ]; then
-		# log_filepath, only loaded if it was not defined as parameter
-		if [ -z "$log_filepath" ]; then
-        		log_filepath="$(load_cfg_file_variable "$configuration_filepath" "log_filepath")"
-		fi
+       		log_filepath="$(load_cfg_file_variable "$configuration_filepath" "log_filepath")"
 		# Mailgun account
-		domain="$(load_cfg_file_variable "$configuration_filepath" "domain")"
-        	api_key="$(load_cfg_file_variable "$configuration_filepath" "api_key")"
+		domain="$(load_cfg_file_variable "$configuration_filepath" "mailgun_domain")"
+        	api_key="$(load_cfg_file_variable "$configuration_filepath" "mailgun_api_key")"
 		# "Subconfig" folders
 		mailgun_api_account_configurations_folder="$(load_cfg_file_variable "$configuration_filepath" "mailgun_api_account_configurations_folder")"
 		usecase_configurations_folder="$(load_cfg_file_variable "$configuration_filepath" "usecase_configurations_folder")"
