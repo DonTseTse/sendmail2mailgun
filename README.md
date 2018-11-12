@@ -1,6 +1,17 @@
 # sendmail2mailgun
 Bash script handling sendmail input to send mails over Mailgun's HTTP API
 
+# Introduction
+`sendmail2mailgun` is a small tool that allows to send mails in sendmail format over the Mailgun API. It's useful 
+in case local mailing infrastructure is not available or desirable. The sendmail format uses sort of headers to encode 
+mail fields, with everything after the header beeing the mail's body. 
+```
+From: <The Sender>sender@example.com
+To: receiver@example.com
+Subject: This is a mail
+This is the mail body.
+```  
+
 # Configuration
 `sendmail2mailgun`'s configuration options are:
 - Mailgun API account settings: domain + key
