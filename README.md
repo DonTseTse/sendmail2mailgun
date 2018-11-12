@@ -31,44 +31,33 @@ The default mode can be selected at installation time and it can be overwritten 
 - if it's in runtime mode, `--cfg <filepath>` makes it switch to normal mode
 - if it's in normal mode, `--cfg ""` makes it switch it to runtime mode, `--cfg <filepath>` overwrites the filepath used by default
 
-To be able to adapt the file-based configuration easily to different contexts and/or several Mailgun API accounts, the global 
-configuration may be extended with so called **usecase configurations**. These replicate and overwrite the global configuration and
-add a usecase name which can be useful in log analytics. Likewise, in case several Mailgun API accounts are (re)used accross the different 
-configuration files, these may stored in a files and addressed by name.
-
-# Usecase configurations
-- Mailgun API account configurations
-- *Mailgun account configurations* in `mailgun_api_account_configurations_folder`
-- usecase configurations: flags `-uc <usecase name>`
-- *usecase configurations*  in `usecase_configurations_folder`
+## File-based configuration
+In normal mode, `sendmail2mailgun` loads the global configuration file (`--cfg` flag overwrites default location). To be able to adapt 
+the file-based configuration easily to different contexts and/or several Mailgun API accounts, the global configuration may be extended 
+with **usecase configurations**. These replicate and overwrite the global configuration and add a usecase name which can be useful in 
+log analytics. Likewise, in case several Mailgun API accounts are (re)used accross the different configuration files, these may stored 
+in dedicated files and addressed by name.
 
 These different configuration files are described here, templates may be found here.
+
+### Usecase configurations
+A usecase configuration file may either be specified by `--uc- <filpath>` or using the flag `-uc <name>` if 
+`usecase_configurations_folder` is defined in the global configuration file.  
+
+Variable definitions:
+- `name`: if a single global log is used, useful to be able to track in the logs with which configuration a mail was sent
+- `log_filepath`
+- `default_sender`, `default_recipient`, `default_subject`
+- `mailgun_api_account_name`
+ 
+### Mailgun API account configurations
+- *Mailgun account configurations* in `mailgun_api_account_configurations_folder`
 
 # Logging
 `sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and classic file logging, each with 
 their own logging level.
 By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_level` to 1. Whether file logging occurs depend if
 `log_filepath` is set.
-
-----------------------------
-# Garbage
-
-If `sendmail2mailgun` is used in several usecases it's desirable to be able to have dedicated configuration for each.
-
-To be able to use sendmail2mailgun in many different contexts it supports *usecase configurations* 
-A usecase configuration
-supports the variable definitions:
-- `name`: if a single global log is used, useful to be able to track in the logs with which configuration a mail was sent
-- `log_filepath`
-- `default_sender`, `default_recipient`, `default_subject`
-- `mailgun_api_account_name`
-
-`sendmail2mailgun` searches for a file at a location set during installation
-(default `/etc/sendmail2mailgun/main.conf`), this path may be overwritten at runtime using the flag `--cfg <filepath>`.
-## File configuration structure
-
-
-## Minimal configuration
 
 # Parametrization
 send2mail2mailgun has a range of essential internal parameters:
@@ -80,5 +69,6 @@ send2mail2mailgun has a range of essential internal parameters:
 	+ in the global configuration
 - `log_level`: defaults to 1 (normal logging)
 
-# Logging
-
+# Installer
+TODO 
+By default, installs global configurtion to `/etc/sendmail2mailgun/main.conf`
