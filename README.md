@@ -1,6 +1,6 @@
 # Introduction
-`sendmail2mailgun` is a bash script that is able to handle sendmail input to send mails over Mailgun's HTTP API. It can be a useful 
-alternative if the usual mailing infrastructure is not available or desirable. 
+`sendmail2mailgun` is a bash script handling sendmail input to send mails over [Mailgun](https://www.mailgun.com/)'s 
+HTTP API. It can be a useful alternative if the usual mailing infrastructure is not available or desirable. 
 
 The sendmail format encodes the mail variables as `<key>:<value>` headers, with everything else beeing the mail body: 
 ```
@@ -13,13 +13,13 @@ This is the mail body.
 ```
 printf "From: ...\nTo: ...\nSubject:...\nMail body" | sendmail2mailgun
 ```
-To be able to use the Mailgun API, sendmail2mailgun needs the domain and key to use. For security reasons the key can't be a runtime 
+To log into the Mailgun API, `sendmail2mailgun` needs the domain and key to use. For security reasons the key can't be a runtime 
 parameter (visibility in the logs), it has to be provided through a file. 
 
 # Configuration
 `sendmail2mailgun`'s configuration options are:
 - Mailgun API account settings: domain + key
-- Log filepath
+- Log filepath and logging levels
 - Mailing defaults: sender, recipient(s), subject
 
 `sendmail2mailgun` is able to work in two different modes for greatest flexibility:
@@ -43,7 +43,7 @@ Every configuration file type is explained in detail below, templates may be fou
 ### Global configuration
 Variable definitions:
 - `mailgun_domain` and `mailgun_api_key`
-- `log_filepath`
+- `log_filepath` and `logging_level`
 - `default_sender`, `default_recipient`, `default_subject`
 - `usecase_configurations_folder`
 - `mailgun_api_account_configurations_folder`
@@ -52,32 +52,52 @@ Variable definitions:
 files are stored. 
 
 ### Usecase configurations
-A usecase configuration file may either be specified by `--uc-cfg <filpath>` or using the flag `-uc <name>` if 
-`usecase_configurations_folder` is defined in the global configuration file.  
+A usecase configuration file may either be specified by `--uc-cfg <filepath>` or using the flag `-uc <name>` if 
+`usecase_configurations_folder` is defined in the global configuration file (the path beeing `usecase_configurations_folder/<name>.conf`)
 
 Variable definitions:
-- `name`: if a single global log is used, useful to be able to track in the logs with which configuration a mail was sent
-- `log_filepath`
+- `name`: useful for log analytics if a single global log is used
+- `log_filepath` and `logging_level`
 - `default_sender`, `default_recipient`, `default_subject`
 - `mailgun_api_account_name`
  
 ### Mailgun API account configurations
-A Mailgun API account configuration file may either be specified by `--mg-api-acc-cfg <filpath>` or in the usecase definition using 
-`mailgun_account_name` if `mailgun_api_account_configurations_folder` is defined in the global configuration file.
+A Mailgun API account configuration file may either be specified by `--mg-api-acc-cfg <filepath>` or in the usecase definition using 
+`mailgun_api_account_name` if `mailgun_api_account_configurations_folder` is defined in the global configuration file.
 
 Variable definitions are taken into account in this type of file:
 - `domain`
 - `key`
 
 # Logging
-`sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and classic file logging, each with 
-their own logging level.
-By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_level` to 1. Whether file logging occurs depend if
-`log_filepath` is set.
+`sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and file logging (to `log_filepath`), 
+each with their own logging level.
 
-# Parametrization
-sendmail2mailgun has a range of essential internal parameters:
-- `log_filepath`: can be set through many ways, in the order of precendence
+By default, the `stdout_logging_level` is set to 0 (disabled), the `logging_level` to 1. 
+
+# Internals
+An overview of the internal parameter set and how the configurations apply - by order or precedence: 
+
+Mail
+- `sender` / `recipient` / `subject`:
+        + extracted from the sendmail input
+        + `default_<x>`, where x is `sender` / `recipient` / `subject`, from a usecase configuration
+        + `default_<x>` from the global configuration
+- `mail_body`: extracted from the sendmail input
+- `mail_uses_html_body`: defaults to 0/false for a text body. Enable with the flag `--html`
+
+Mailgun API account
+- `domain`
+        + `--domain <domain>`
+        + `domain` in a Mailgun account configuration
+        + `mailgun_api_account_domain` in the global configuration
+- `api_key`
+        + `--keyfile <filepath>`
+        + `key` in a Mailgun account configuration
+        + `mailgun_api_account_key` in the global configuration
+
+Logging 
+- `log_filepath`: 
 	+ `--log-filepath <filepath>` flag
 	+ in the usecase configuration
 	+ in the global configuration
@@ -85,24 +105,15 @@ sendmail2mailgun has a range of essential internal parameters:
 	+ `--log-level <level>` flag
 	+ in the usecase configuration
 	+ in the global configuration
-- `stdout_log_level`: defaults to 0/disabled. Enable with the flag `-v`
+- `stdout_log_level`: defaults to 0/disabled. The flag `-v` set it to 1, `-vv` to 2
+
+Configuration
 - `configuration_filepath`: 
 	+ `--cfg <filepath>`
 	+ default set on installation
-- `domain`
-	+ `--domain <domain>`
-	+ `domain` in a Mailgun account configuration
-	+ `mailgun_api_account_domain` in the global configuration
-- `api_key`
-	+ `--keyfile <filepath>`
-	+ `key` in a Mailgun account configuration
-	+ `mailgun_api_account_key` in the global configuration
-- `mail_uses_html_body`: defaults to 0/false for a text body. Enable with the flag `-html`
-- `sender` / `recipient` / `subject`: 
-	+ extracted from the sendmail input
-	+ `default_<x>` from a usecase configuration
-	+ `default_<x>` from the global configuration
-- `mail_body`: extracted from the sendmail input
+
+## Sendmail format processing details | Multiple recipients
+TODO
 
 # Installer
 TODO 
