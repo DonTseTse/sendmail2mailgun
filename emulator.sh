@@ -1,11 +1,8 @@
 #! /bin/bash
 
-#TODO:
-# - functions: use local, shorten varnames
-
 ##### Configuration
+# configuration_filepath: default filepath of the global configuration. Can be modified by the installer
 configuration_filepath="/etc/sendmail2mailgun/main.conf"
-emergency_log_path="/var/log/sendmail2mailgun_emergency.conf"
 
 ##### Functions
 ### sanitize_variable_quotes
@@ -32,11 +29,11 @@ function sanitize_variable_quotes()
 # Returns: value of the variable in the file, if it exits and is defined
 function load_cfg_file_variable()
 {
-        local val=$(grep "^\s*$2\s*\=" "$1" | awk -F = '{print $2}')
+        local val="$(grep "^\s*$2\s*\=" "$1" | awk -F = '{print $2}')"
         if [ -z "$val" ]; then
                 return 1
         fi
-        echo $(sanitize_variable_quotes "$val")
+        echo "$(sanitize_variable_quotes "$val")"
 }
 
 ### log
@@ -45,29 +42,31 @@ function load_cfg_file_variable()
 #
 # Parametrization:
 #  $1 message to log
-#  $2 (optional) output restriction
+#  $2 (optional) log level - if omitted, defaults to 1
+#  $3 (optional) output restriction - if omitted, both output channels are used
 #     - "file" avoids stdout write even if $stdout_logging is enabled
 #     - "stdout" avoid file logging even if $log_filepath is set
 # Globals used: $stdout_logging, $run_id, $log_filepath
 function log()
 {
+	local msg_log_level="${2:-1}"
 	local line
 	# IFS set to whitespace preservation
 	while IFS='' read -r line; do
 		# log caching if logging is not available
 		if [ "$logging_available" -eq 0 ]; then
                 	if [ ! -z "$logging_backlog" ]; then
-                        	logging_backlog[${#logging_backlog[*]}]="$line"
+                        	logging_backlog[${#logging_backlog[*]}]="$line|$2|$3"
                 	else
-                        	logging_backlog[0]="$line"
+                        	logging_backlog[0]="$line|$2|$3"
                 	fi
 			continue
         	fi
-		if [ ! -z "$stdout_log_level" ] && [ $stdout_log_level -gt 0 ] && [ ! "$2" = "file" ]; then
+		if [ ! -z "$stdout_log_level" ] && [ "$stdout_log_level" -ge $msg_log_level ] && [ ! "$3" = "file" ]; then
 			printf '%s\n' "${line}"
 			#printf "$line\n" can lead to string interpretation. f.ex. if $line = '- a list item' it's going to complain printf: - : invalid option
 		fi
-		if [ ! -z "$log_filepath" ] && [ ! "$2" = "stdout" ]; then
+		if [ ! -z "$log_filepath" ] && [[ "$log_level" =~ ^[0-9]+$ ]] && [ "$log_level" -ge $msg_log_level ] && [ ! "$3" = "stdout" ]; then
 			printf "[$run_id] $line\n" >> "$log_filepath"
 		fi
 	done <<< "$1"
@@ -81,8 +80,16 @@ function launchLogging()
 {
 	logging_available=1
 	local idx
+	local backlog_entry
+	local entry_output_resitriction
+	local entry_log_level
 	for idx in ${!logging_backlog[*]}; do
-        	log "${logging_backlog[$idx]}"
+		backlog_entry="${logging_backlog[$idx]}"
+		entry_output_restriction=$(echo "$backlog_entry" | sed 's/.*|//')
+		backlog_entry=$(echo "$backlog_entry" | sed 's/\(.*\)|.*/\1/')
+		entry_log_level=$(echo "$backlog_entry" | sed 's/.*|//')
+		backlog_entry=$(echo "$backlog_entry" | sed 's/\(.*\)|.*/\1/')
+		log "$backlog_entry" $entry_log_level $entry_output_restriction
 	done
 	logging_backlog=()
 }
@@ -117,9 +124,9 @@ function trim()
 function process_sendmail_formatted_input()
 {
 	local nb_headers=0
-	log "Looking for sendmail format headers"
+	log "Looking for sendmail format headers" 2
 	while read -r line; do
-		header_match="$(echo "$line" | egrep '^\s*[[:alnum:]]*:')"
+		local header_match="$(echo "$line" | egrep '^\s*[[:alnum:]]*:')"
 		# important: after matches, there's one pass with a header_match=""
 		if [ ! -z "$header_match" ]; then
 			handle_sendmail_format_header "$header_match"
@@ -129,10 +136,10 @@ function process_sendmail_formatted_input()
 		((nb_headers++))
 	done <<< "${!1}"
 	if [ $nb_headers -gt 0 ]; then
-		log "$nb_headers header(s) found, extracting mail body"
+		log "$nb_headers header(s) found, extracting mail body" 2
 		mail_body="$(echo "${!1}" | tail -n +$((nb_headers+1)))"
 	else
-		log "No headers found, all input is mail body"
+		log "No headers found, all input is mail body" 2
 		mail_body="${!1}"
 	fi
 }
@@ -149,19 +156,19 @@ function handle_sendmail_format_header()
 
 	case "$type" in
 		"Subject" )
-			log " - found 'Subject' header with value $value"
+			log " - found 'Subject' header with value $value" 2
 			subject="$value"
 		;;
 		"To" )
-			log " - found 'To' (aka recipient) header with value $value"
+			log " - found 'To' (aka recipient) header with value $value" 2
 			recipients[${#recipients[*]}]="$value"
 		;;
 		"From" )
-			log " - fund 'From' (aka sender) header with value $value"
+			log " - fund 'From' (aka sender) header with value $value" 2
 			sender="$value"
 		;;
 		* )
-			log " - warning: Unknown header type '$type' with value '$value'. Discarded"
+			log " - Warning: Unknown header type '$type' with value '$value'. Discarded"
 			#'Date' is not handled
 		;;
 	esac
@@ -172,18 +179,14 @@ function handle_sendmail_format_header()
 #
 # Parametrization
 #  $1 folder to search
-#  $2 (optional) pattern
+#  $2 (optional) pattern - if omitted, defaults to * (= everything)
+# Returns: filepath of the single match, if any
 function try_filepath_deduction()
 {
-	if [ ! -z "$2" ]; then
-		local pattern="$2"
-	else
-		local pattern="*"
-	fi
+	local pattern="${2:-*}"
 	local file_cnt=0
 	if [ -d "$1" ]; then
 		for filepath in "$1/"$pattern; do
-			#echo "fp: $filepath"
 			if [ -f "$filepath" ]; then
 				single_file_path="$filepath"
 				((file_cnt++))
@@ -199,73 +202,116 @@ function try_filepath_deduction()
 ################################  Preparation  ################################
 ### Init internals
 logging_available=0
-log_level=0
+log_level=1
 stdout_log_level=0
 logging_backlog=()
 mail_uses_html_body=0
 recipients=()
+test_mode=0
+executable_name="$(basename "$0")"
 # Random ID for the run to be able to distinguish interleaving log entries if several processes run in parallel
 run_id=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ;)
 log "New run | ID: $run_id - Timestamp: $(date +"%d-%m-%Y %T")"
 
 # Parameter processing
-log "Processing parameters..."
+log "Processing parameters..." 2
 parameter_idx=0
 flag_value_counter=0
+param_array=("$@")
 for parameter in "$@"; do
 	# required to handle flags that come with one or several values (pattern <flag> <value> [<value>]) - the counter is set by the flag handling and skips these values
 	if [ $flag_value_counter -gt 0 ]; then
 		((flag_value_counter--))
+		((parameter_idx++))
 		continue
 	fi
 	case "$parameter" in
-		"-help" )
-			echo "Usage: <command> | sendmail_emulator.sh [<flags>] [<recipient>]"
+		"--help" )
+			echo "Usage: <command> | $executable_name [<flags>] [<recipient>]"
 			echo "  where - <command>: a program which writes the mail in sendmail format on stdout, like  printf or echo. See the example"
 			echo "        - <flags> (optional): explained below"
 			echo "        - <recipient> (optional): a email address or a comma separated list of several email addresses"
 			echo "Flags:"
-			echo " -v	enable stdout logging"
-			echo " -html	HTML mail body (default: text)"
+			echo " --cfg <filepath>            Global configuration filepath"
+			echo " --domain <domain>           Mailgun API account domain"
+			echo " --help                      Print this message and quit"
+			echo " --html                      HTML mail body (default: text)"
+			echo " --keyfile <filepath>        Mailgun API account key filepath"
+			echo " --log-file <filepath>       Log filepath"
+			echo " --log-level <level>         Level for file logging"
+			echo " --mg-cfg <filepath>         Mailgun API account configuration filepath"
+			echo " --test                      Enable test mode"
+			echo " --uc-cfg <filepath>         Usecase configuration filepath"
+			echo " --uc <name>                 Name of the usecase configuration"
+			echo " -v                          Enable stdout logging, level 1"
+			echo " --vv                        Enable stdout logging, level 2"
 			echo ""
 			echo "Examples:"
 			echo " - A simple mail"
-			echo "   printf \"From:<sender@example.com>\nTo:<recipient@example.com>\nSubject:A mail!\nThis is the mail body.\" | sendmail_emulator.sh"
+			echo "   printf \"From:<sender@example.com>\nTo:<recipient@example.com>\nSubject:A mail!\nThis is the mail body.\" | $executable_name"
+			echo ""
 			exit 0
 		;;
-		"-v" )
-                        stdout_log_level=1
-                ;;
-                "-html" )
-                        mail_uses_html_body=1
-                        log " - Flag -html: sets the mail body format to HTML"
-                ;;
+                "--html" )
+			mail_uses_html_body=1
+			log " - Flag --html: sets the mail body format to HTML" 2
+		;;
+		"--domain" )
+			runtime_domain="${param_array[((parameter_idx+1))]}"
+			log " - Flag --domain: Mailgun API account domain set to $runtime_domain" 2
+			flag_value_counter=1
+		;;
+		"--keyfile" )
+                        key_filepath="${param_array[((parameter_idx+1))]}"
+                        log " - Flag --keyfile: Mailgun API account keyfile set to $key_filepath" 2
+			flag_value_counter=1
+		;;
 		"--cfg" )
-			configuration_filepath="$@[((parameter_idx+1))]"
+			configuration_filepath="${param_array[((parameter_idx+1))]}"
+			log " - Flag --cfg: global configuration filepath set to $configuration_filepath" 2
 			flag_value_counter=1
 		;;
-		"--mg-api-acc-cfg" )
-			mailgun_api_account_configuration_filepath="$@[((parameter_idx+1))]"
+		"--mg-cfg" )
+			mailgun_api_account_configuration_filepath="${param_array[((parameter_idx+1))]}"
+			log " - Flag --mg-cfg: Mailgun API account configuration filepath set to $mailgun_api_account_configuration_filepath" 2
 			flag_value_counter=1
 		;;
-		"--uc-cfg" )
-                        usecase_configuration_filepath="$@[((parameter_idx+1))]"
-			flag_value_counter=1
+		"--test" )
+			test_mode=1
+			log " - Flag --test: test mode enabled" 2
                 ;;
-		"--log-filepath" )
-			runtime_log_filepath="$@[((parameter_idx+1))]"
-			flag_value_conter=1
+		"--uc-cfg" )
+			usecase_configuration_filepath="${param_array[((parameter_idx+1))]}"
+			log " - Flag --uc-cfg: usecase configuration filepath set to $usecase_configuration_filepath" 2
+			flag_value_counter=1
+		;;
+		"--uc" )
+			usecase_name="${param_array[((parameter_idx+1))]}"
+			log " - Flag --uc: usecase '$usecase_name' selected" 2
+			flag_value_counter=1
+		;;
+		"-v" )
+			stdout_log_level=1
+		;;
+		"--vv" )
+			stdout_log_level=2
+		;;
+		"--log-file" )
+			runtime_log_filepath="${param_array[((parameter_idx+1))]}"
+			log " - Flag --log-file: logs go to $runtime_log_filepath" 2 stdout
+			flag_value_counter=1
 		;;
 		"--log-level" )
-			runtime_log_level="$@[((parameter_idx+1))]"
-                        flag_value_conter=1
+			runtime_log_level="${param_array[((parameter_idx+1))]}"
+			log " - Flag --log-level: log level set to $runtime_log_level" 2 stdout
+			flag_value_counter=1
 		;;
 		* )
 			if [ $parameter_idx -eq $(($#-1)) ]; then
 				recipients[0]="$parameter"
-				log "Recipient '$recipient' set via CLI parameter"
+				log "Recipient '$parameter' set via CLI parameter" 2
 			else
-				log "Error: Unknown CLI parameter '$parameter'."
+				log "Error: Unknown CLI parameter '$parameter'"
 			fi
 		;;
 	esac
@@ -276,6 +322,7 @@ done
 if [ ! -z "$configuration_filepath" ]; then
 	if [ -f "$configuration_filepath" ]; then
        		log_filepath="$(load_cfg_file_variable "$configuration_filepath" "log_filepath")"
+		log_level="$(load_cfg_file_variable "$configuration_filepath" "log_level")"
 		# Mailgun account
 		domain="$(load_cfg_file_variable "$configuration_filepath" "mailgun_domain")"
         	api_key="$(load_cfg_file_variable "$configuration_filepath" "mailgun_api_key")"
@@ -286,9 +333,9 @@ if [ ! -z "$configuration_filepath" ]; then
 		default_sender="$(load_cfg_file_variable "$configuration_filepath" "default_sender")"
         	default_recipient="$(load_cfg_file_variable "$configuration_filepath" "default_recipient")"
         	default_subject="$(load_cfg_file_variable "$configuration_filepath" "default_subject")"
-		log "Loaded configuration file '$configuration_filepath'"
+		log "Using global configuration file '$configuration_filepath'" 2
 	else
-		log "Unable to load configuration file '$configuration_filepath'"
+		log "Error: configuration file '$configuration_filepath' not found"
 	fi
 fi
 
@@ -298,7 +345,6 @@ if [ -z "$usecase_configuration_filepath" ] && [ ! -z "$usecase_configurations_f
 		usecase_configuration_filepath="$usecase_configurations_folder/$usecase.conf"
 	else
 		usecase_configuration_filepath="$(try_filepath_deduction "$usecase_configurations_folder" *.conf)"
-		#try_filepath_deduction "$usecase_configurations_folder" *.conf
 	fi
 fi
 
@@ -308,12 +354,13 @@ if [ ! -z "$usecase_configuration_filepath" ]; then
 		usecase_name="$(load_cfg_file_variable "$usecase_configuration_filepath" "name")"
 		mailgun_api_account_name="$(load_cfg_file_variable "$usecase_configuration_filepath" "mailgun_api_account_name")"
 		log_filepath="$(load_cfg_file_variable "$usecase_configuration_filepath" "log_filepath")"
+		log_level="$(load_cfg_file_variable "$usecase_configuration_filepath" "log_level")"
 		default_sender="$(load_cfg_file_variable "$usecase_configuration_filepath" "default_sender")"
 		default_recipient="$(load_cfg_file_variable "$usecase_configuration_filepath" "default_recipient")"
 		default_subject="$(load_cfg_file_variable "$usecase_configuration_filepath" "default_subject")"
-		log "Usecase configuration $usecase_configuration_filepath used. Usecase is called '$usecase_name'"
+		log "Using usecase configuration $usecase_configuration_filepath. Usecase is called '$usecase_name'" 2
 	else
-		log "Unable to load usecase configuration '$usecase_configuration_filepath'"
+		log "Error: usecase configuration '$usecase_configuration_filepath' not found"
 	fi
 fi
 
@@ -329,14 +376,11 @@ fi
 launchLogging
 
 # Mailgun API account configuration: if applicable, compute composed filepath
-#echo "API filepath: $mailgun_api_account_configuration_filepath"
-#echo "API folder: $mailgun_api_account_configurations_folder"
 if [ -z "$mailgun_api_account_configuration_filepath" ] && [ ! -z "$mailgun_api_account_configurations_folder" ]; then
         if [ ! -z "$mailgun_api_account_name" ]; then
                 mailgun_api_account_configuration_filepath="$mailgun_api_account_configurations_folder/$mailgun_api_account_name.conf"
         else
-		mailgun_api_account_configuration_filepath="$(try_filepath_deduction "$mailgun_api_account_configurations_folder" "*.conf")"
-		#try_filepath_deduction "$mailgun_api_account_configurations_folder" *.conf
+		mailgun_api_account_configuration_filepath="$(try_filepath_deduction "$mailgun_api_account_configurations_folder" *.conf)"
 	fi
 fi
 
@@ -345,14 +389,26 @@ if [ ! -z "$mailgun_api_account_configuration_filepath" ]; then
 	if [ -f "$mailgun_api_account_configuration_filepath" ]; then
 		domain="$(load_cfg_file_variable "$mailgun_api_account_configuration_filepath" "domain")"
 		api_key="$(load_cfg_file_variable "$mailgun_api_account_configuration_filepath" "api_key")"
-		log "Mailgun API account configuration file '$mailgun_api_account_configuration_filepath' used. Domain: $domain"
+		log "Using Mailgun API account configuration file '$mailgun_api_account_configuration_filepath'" 2
 	else
-		log "Unable to load Mailgun API account configuration file '$mailgun_api_account_configuration_filepath'"
+		log "Error: Mailgun API account configuration file '$mailgun_api_account_configuration_filepath' not found"
+	fi
+fi
+
+if [ ! -z "$runtime_domain" ]; then
+	domain="$runtime_domain"
+fi
+if [ ! -z "$keyfile" ]; then
+	if [ -f "$keyfile" ]; then
+		api_key=$(<"$keyfile")
+	else
+		log "Error: Mailgun API keyfile '$keyfile' not found"
 	fi
 fi
 
 # Pipe check
 if [ ! -p /dev/stdin ]; then
+	stdout_log_level=1
         log "No piped input, aborting. Run the script with the flag --help to get usage details"
         exit 1
 fi
@@ -360,6 +416,7 @@ piped_input="$(cat)"
 
 # Minimal requirements
 if [ -z "$domain" ] || [ -z "$api_key" ]; then
+	stdout_log_level=1
 	log "Mailgun API domain and/or key missing. Domain value: '$domain'. Unable to send without that, aborting..."
 	exit 1
 fi
@@ -381,11 +438,24 @@ recipient_string=""
 for recipient in ${recipients[*]}; do
 	recipient_string="$recipient,$recipient_string"
 done
+# remove last ','
 recipient_string="${recipient_string%?}"
 
+if [ -z "$sender" ] || [ -z "$recipient_string" ]; then
+        stdout_log_level=1
+        log "Sender and/or recipient(s) missing. Sender: '$sender', recipient(s): '$recipient_string'. Unable to send without that, aborting..."
+        exit 1
+fi
+
+if [ $test_mode -eq 1 ]; then
+printf "curl -s -v --user "api:$api_key" --connect-timeout 10 \n https://api.mailgun.net/v3/$domain/messages \n -F from="$sender" \n -F to="$recipient_string" \
+       "-F "subject= $subject" \n -F "$request_mail_body_parameter_name= $mail_body""
+fi
+
 # launch API request
-log "Sender ('from'): $sender | Recipient(s) ('to'): $recipient_string"
-curl_return=$(curl -s --user "api:$api_key" \
+curl_log_filepath="/tmp/sendmail2mailgun_${run_id}_curl.log"
+log "Launching request... Domain: $domain | Sender: $sender | Recipient(s): $recipient_string" 2
+curl_return=$(2>"$curl_log_filepath" curl -s -v --user "api:$api_key" --connect-timeout 10 \
      https://api.mailgun.net/v3/$domain/messages \
      -F from="$sender" \
      -F to="$recipient_string" \
@@ -395,12 +465,21 @@ curl_return=$(curl -s --user "api:$api_key" \
      # the variables are in a "parameter= $name" here and the blank after the '=' is important because if a value starts with a '<' that's
      # interpreted as a bash file operation and breaks everything
 
+curl_status=$?
+
 # process response
-server_msg="$(echo "$curl_return" | sed '$d')"
-http_code="${curl_return##*$'\n'}"
-if [ $http_code -eq 200 ]; then
-	log "Mailgun API request successful, server response: $server_msg"
+if [ $curl_status -eq 0 ]; then
+	server_msg="$(echo "$curl_return" | sed '$d')"
+	http_code="${curl_return##*$'\n'}"
+	if [ $http_code -eq 200 ]; then
+		log "Mailgun API request successful, server response: $server_msg"
+	else
+		log "Mailgun API request failed with HTTP status code $http_code, server response: $server_msg"
+	fi
 else
-	log "Mailgun API request failed with HTTP status code $http_code, server response: $server_msg"
+	log "Mailgun API request failed with cURL error code $curl_status. See https://ec.haxx.se/usingcurl-returns.html for error code signification"
+	log "cURL output:"
+	log "$(<"$curl_log_filepath")"
 fi
-log "Run $run_id finished" file
+rm "$curl_log_filepath"
+log "Run finished" 1 file

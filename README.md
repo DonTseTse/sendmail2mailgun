@@ -4,7 +4,7 @@ HTTP API. It can be a useful alternative if the usual mailing infrastructure is 
 
 The sendmail format encodes the mail variables as `<key>:<value>` headers, with everything else beeing the mail body: 
 ```
-From: <The Sender>sender@example.com
+From: <Identity>sender@example.com
 To: receiver@example.com
 Subject: This is a mail
 This is the mail body.
@@ -16,6 +16,13 @@ printf "From: ...\nTo: ...\nSubject:...\nMail body" | sendmail2mailgun
 To log into the Mailgun API, `sendmail2mailgun` needs the domain and key. For security reasons the key can't be a runtime parameter 
 (visibility in the logs), it has to be provided through a file. 
 
+The formal usage description is:
+```
+... | sendmail2mailgun [flags] [recipient_string]
+```
+where the optional `recipient_string` is a email address or a comma separated list of several email addresses. Flags
+are explined in the [dedicated section](#flags). You may also run the script with `--help` to get details. 
+
 # Configuration
 `sendmail2mailgun`'s configuration options are:
 - Mailgun API account settings: domain + key
@@ -23,8 +30,8 @@ To log into the Mailgun API, `sendmail2mailgun` needs the domain and key. For se
 - Mailing defaults: sender, recipient(s), subject
 
 `sendmail2mailgun` is able to work in two different modes:
-- the "configuration file less" - called runtime - mode: the only file used is the keyfile for the Mailgun API. The flags 
-  `--domain <domain> --keyfile <filepath>` are compulsory
+- the "configuration file less" (called runtime) mode: the only file used is the keyfile for the Mailgun API account. 
+  The flags `--domain <domain> --keyfile <filepath>` are compulsory
 - the normal file-based mode, with a global configuration file and possible further ramifications
 
 The default mode can be selected at installation time and it can be overwritten at runtime with:
@@ -46,7 +53,7 @@ The path of the global configuration file is determined by, in order of precende
 
 A global configuration may define:
 - `mailgun_domain` and `mailgun_api_key`
-- `log_filepath` and `logging_level`
+- `log_filepath` and `log_level`
 - `default_sender`, `default_recipient`, `default_subject`
 - `usecase_configurations_folder`
 - `mailgun_api_account_configurations_folder`
@@ -57,13 +64,13 @@ files, explained in the sections below.
 ### Usecase configurations
 The filepath of a usecase configuration file is determined by, in order of precedence:
 - the `--uc-cfg <filepath>` runtime flag
-- the `-uc <name>` runtime flag - in this case, the filepath is `usecase_configurations_folder/<name>.conf` where 
+- the `--uc <name>` runtime flag - in this case, the filepath is `usecase_configurations_folder/<name>.conf` where 
   `usecase_configurations_folder` is defined in the global configuration file
 - if `usecase_configurations_folder` is defined and there's only a single `.conf` file in it, this one is used
 
 A usecase configuration file may define:
 - `name`: useful for log analytics if a single global log is used
-- `log_filepath` and `logging_level`
+- `log_filepath` and `log_level`
 - `default_sender`, `default_recipient`, `default_subject`
 - `mailgun_api_account_name`
  
@@ -80,27 +87,32 @@ A Mailgun API account configuration should define:
 - `key`
 
 ## Flags
-Part of the output of `sendmail2mailgun --help`:
+The part of `sendmail2mailgun --help` about flags:
 ```
- --cfg <filepath>            Global configuration filepath
- --domain <domain>           Mailgun API account domain
- --html                      HTML mail body (default: text)
- --keyfile <filepath>        Mailgun API account keyfile filepath
- --log-filepath <filepath>   Log filepath
- --log-level <level>         Level for file logging
- --mg-cfg <filepath>         Mailgun API account configuration filepath
- --uc-cfg <filepath>         Usecase configuration filepath
- --usecase <name>            Name of the usecase configuration
- -v                          Enable stdout logging, level 1
- --vv                        Enable stdout logging, level 2
+--cfg <filepath>            Global configuration filepath
+--domain <domain>           Mailgun API account domain
+--help                      Print this message and quit
+--html                      HTML mail body (default: text)
+--keyfile <filepath>        Mailgun API account key filepath
+--log-file <filepath>       Log filepath
+--log-level <level>         Level for file logging
+--mg-cfg <filepath>         Mailgun API account configuration filepath
+--test                      Enable test mode
+--uc-cfg <filepath>         Usecase configuration filepath
+--uc <name>                 Name of the usecase configuration
+-v                          Enable stdout logging, level 1
+--vv                        Enable stdout logging, level 2
 ```
 
 # Logging
-`sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and file logging (to `log_filepath`), 
-each with their own logging level.
+`sendmail2mailgun` provides fully configurable logging capabilities. It's able to handle stdout and file logging each with their own 
+logging level.
 
-By default, stdout logging is disabled, use the flag `-v` to enable it, `-vv` to raise verbosity. File logging is disabled as long
-as no `log_filepath` is set. By default, the file `logging_level` defaults to 1 and may be overwritten in the global or usecase
+By default, stdout logging is disabled (`stdout_log_level` set to 0) and file logging is disabled as long as no `log_filepath` is set. 
+`log_level` defaults to 1. Have a look at the [internals](#internals), section "Logging", to see the different ways this can be 
+configured. 
+
+To see  and may be overwritten in the global or usecase
 configuration and through the runtime flag `--log-level <level>` 
 
 # Internals
@@ -126,25 +138,26 @@ Mailgun API account
 
 Logging 
 - `log_filepath`: 
-	+ `--log-filepath <filepath>` flag
-	+ in the usecase configuration
-	+ in the global configuration
+	+ `--log-file <filepath>` flag
+	+ `log_filepath` in the usecase configuration
+	+ `log_filepath` in the global configuration
 - `log_level`: defaults to 1 (normal logging)
 	+ `--log-level <level>` flag
-	+ in the usecase configuration
-	+ in the global configuration
+	+ `log_level` in the usecase configuration
+	+ `log_level` in the global configuration
 - `stdout_log_level`: defaults to 0/disabled. The flag `-v` sets it to 1, `-vv` to 2
 
 Configuration
-- `configuration_filepath`: explained in the [section](#global-configuration)
-- `usecase_configuration_filepath`: explained in the [section](#usecase-configurations)
-- `mailgun_api_account_configuration_filepath`: explained in their [section](#mailgun-api-account-configurations)
+- `configuration_filepath`: explained in the [dedicated section](#global-configuration)
+- `usecase_configuration_filepath`: explained in the [dedicated section](#usecase-configurations)
+- `mailgun_api_account_configuration_filepath`: explained in the [dedicated section](#mailgun-api-account-configurations)
 
 ## Sendmail format processing details | Multiple recipients
 `sendmail2mailgun` looks at the beginning of the piped input, line by line, as long as it finds header matches. As soon
-as a line isn't found to be a header, that line and any subsequent ones are considered to be the mail's body. If there's 
+as there's no match, that line and any subsequent ones are considered to be the mail's body. If there's 
 more than one *From* and/or *Subject* headers, the last one (higher line number) will prevail. Multiple *To* headers 
-are cumulated to build a comma separated email list. The *To* headers themselves can be such lists. 
+are cumulated to build a comma separated email address list. The *To* headers themselves can be such lists. Recipients
+provided on the CLI (last parameter) and those provided as sendmail headers are aggregated, there's no duplicate check. 
 
 # Installer
 TODO 
