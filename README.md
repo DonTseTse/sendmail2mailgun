@@ -32,13 +32,12 @@ The default mode can be selected at installation time and it can be overwritten 
 - `--cfg ""` to switch to runtime mode
 
 ## File-based configuration
-In normal mode, `sendmail2mailgun` loads the global configuration file (`--cfg` flag overwrites default location). To be able to adapt 
-the file-based configuration easily to different contexts and/or several Mailgun API accounts, the global configuration may be extended 
-with **usecase configurations**. These replicate and overwrite the global configuration and add a usecase name which can be useful in 
-log analytics. Likewise, in case several Mailgun API accounts are (re)used accross the different configuration files, these may stored 
-in dedicated files and addressed by name.
+To be able to adapt the file-based configuration easily to different contexts and/or several Mailgun API accounts, the global 
+configuration may be extended with **usecase configurations**. These replicate and overwrite the global configuration and add a 
+usecase name which can be useful in log analytics. Likewise, in case several Mailgun API accounts are (re)used accross the different 
+configuration files, these may stored in dedicated files and addressed by name.
 
-Every configuration file type is explained in detail below, templates may be found [here](blob/master/configuration_templates)
+Every configuration file type is explained in detail below, templates may be found [here](./configuration_templates)
 
 ### Global configuration
 The path of the global configuration file is determined by, in order of precendence:
@@ -72,7 +71,7 @@ A usecase configuration file may define:
 The filepath of a Mailgun API account configuration file is determined by, in order precedence
 - the `--mg-cfg <filepath>` runtime flag
 - if a usecase configuration specifies a `mailgun_api_account_name` and the global configuration defines a 
-  `mailgun_api_account_configurations_folder`, the path is `<mailgun_api_account_configurations_folder>/<mailgun_api_account_name>`
+  `mailgun_api_account_configurations_folder`, the path is `<mailgun_api_account_name>.conf` in that folder
 - if `mailgun_api_account_configurations_folder` is defined in the global configuration file and there's only a single `.conf` file
   in this folder, this one is used  
 
@@ -83,7 +82,17 @@ A Mailgun API account configuration should define:
 ## Flags
 Part of the output of `sendmail2mailgun --help`:
 ```
-
+ --cfg <filepath>            Global configuration filepath
+ --domain <domain>           Mailgun API account domain
+ --html                      HTML mail body (default: text)
+ --keyfile <filepath>        Mailgun API account keyfile filepath
+ --log-filepath <filepath>   Log filepath
+ --log-level <level>         Level for file logging
+ --mg-cfg <filepath>         Mailgun API account configuration filepath
+ --uc-cfg <filepath>         Usecase configuration filepath
+ --usecase <name>            Name of the usecase configuration
+ -v                          Enable stdout logging, level 1
+ --vv                        Enable stdout logging, level 2
 ```
 
 # Logging
@@ -124,15 +133,18 @@ Logging
 	+ `--log-level <level>` flag
 	+ in the usecase configuration
 	+ in the global configuration
-- `stdout_log_level`: defaults to 0/disabled. The flag `-v` set it to 1, `-vv` to 2
+- `stdout_log_level`: defaults to 0/disabled. The flag `-v` sets it to 1, `-vv` to 2
 
 Configuration
-- `configuration_filepath`: explained in the [section](#file-based-configuration)
+- `configuration_filepath`: explained in the [section](#global-configuration)
 - `usecase_configuration_filepath`: explained in the [section](#usecase-configurations)
 - `mailgun_api_account_configuration_filepath`: explained in their [section](#mailgun-api-account-configurations)
 
 ## Sendmail format processing details | Multiple recipients
-TODO
+`sendmail2mailgun` looks at the beginning of the piped input, line by line, as long as it finds header matches. As soon
+as a line isn't found to be a header, that line and any subsequent ones are considered to be the mail's body. If there's 
+more than one *From* and/or *Subject* headers, the last one (higher line number) will prevail. Multiple *To* headers 
+are cumulated to build a comma separated email list. The *To* headers themselves can be such lists. 
 
 # Installer
 TODO 
