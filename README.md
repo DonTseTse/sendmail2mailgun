@@ -21,17 +21,19 @@ The formal usage description is:
 ... | sendmail2mailgun [flags] [recipient_string]
 ```
 where the optional `recipient_string` is a email address or a comma separated list of several email addresses. Flags
-are explined in the [dedicated section](#flags). You may also run the script with `--help` to get details. 
+are explained in the [dedicated section](#flags).  
 
 # Configuration
 `sendmail2mailgun`'s configuration options are:
 - Mailgun API account settings: domain + key
 - Log filepath and logging levels
 - Mailing defaults: sender, recipient(s), subject
+- cURL timeouts: globally, for connection setup
 
 `sendmail2mailgun` is able to work in two different modes:
 - the "configuration file less" (called runtime) mode: the only file used is the keyfile for the Mailgun API account. 
-  The flags `--domain <domain> --keyfile <filepath>` are compulsory
+  The flags `--domain <domain> --keyfile <filepath>` are compulsory. The keyfile should contain the Mailgun API key
+  without any decoration. 
 - the normal file-based mode, with a global configuration file and possible further ramifications
 
 The default mode can be selected at installation time and it can be overwritten at runtime with:
@@ -57,6 +59,7 @@ A global configuration may define:
 - `default_sender`, `default_recipient`, `default_subject`
 - `usecase_configurations_folder`
 - `mailgun_api_account_configurations_folder`
+- `curl_connection_timeout` and `curl_timeout`
 
 `usecase_configurations_folder` and `mailgun_api_account_configurations_folder` are used to locate the respective configuration 
 files, explained in the sections below. 
@@ -73,6 +76,7 @@ A usecase configuration file may define:
 - `log_filepath` and `log_level`
 - `default_sender`, `default_recipient`, `default_subject`
 - `mailgun_api_account_name`
+- `curl_connection_timeout` and `curl_timeout`
  
 ### Mailgun API account configurations
 The filepath of a Mailgun API account configuration file is determined by, in order precedence
@@ -112,15 +116,13 @@ By default, stdout logging is disabled (`stdout_log_level` set to 0) and file lo
 `log_level` defaults to 1. Have a look at the [internals](#internals), section "Logging", to see the different ways this can be 
 configured. 
 
-To see  and may be overwritten in the global or usecase
-configuration and through the runtime flag `--log-level <level>` 
-
 # Internals
 An overview of the internal parameter set and how the configurations apply - by order or precedence: 
 
 Mail
 - `sender` / `recipient` / `subject`:
-	+ extracted from the sendmail input
+	+ extracted from the sendmail input (the details, especially regarding multiple recipients, are given 
+	[here](#sendmail-format-processing-details-|-multiple-recipients)
 	+ `default_<x>`, where `x` is `sender` / `recipient` / `subject`, from a usecase configuration
 	+ `default_<x>` from the global configuration
 - `mail_body`: extracted from the sendmail input
@@ -147,10 +149,18 @@ Logging
 	+ `log_level` in the global configuration
 - `stdout_log_level`: defaults to 0/disabled. The flag `-v` sets it to 1, `-vv` to 2
 
-Configuration
+Configuration filepaths
 - `configuration_filepath`: explained in the [dedicated section](#global-configuration)
 - `usecase_configuration_filepath`: explained in the [dedicated section](#usecase-configurations)
 - `mailgun_api_account_configuration_filepath`: explained in the [dedicated section](#mailgun-api-account-configurations)
+
+cURL settings
+- `curl_connection_timeout`
+	+ `curl_connection_timeout` in the usecase configuration
+	+ `curl_connection_timeout` in the global configuration
+- `curl_timeout`
+	+ `curl_timeout` in a usecase configuration
+	+ `curl_timeout` in the global configuration
 
 ## Sendmail format processing details | Multiple recipients
 `sendmail2mailgun` looks at the beginning of the piped input, line by line, as long as it finds header matches. As soon
