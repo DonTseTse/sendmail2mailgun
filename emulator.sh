@@ -4,8 +4,8 @@
 # - user / permission aspects, check for file read/write
 
 ##### Configuration
-# configuration_filepath: default filepath of the global configuration. Can be modified by the installer
-configuration_filepath="/etc/sendmail2mailgun/main.conf"
+# configuration_filepath: default filepath of the global configuration, set by the installer
+configuration_filepath=""
 
 ##### Functions
 ### sanitize_variable_quotes
