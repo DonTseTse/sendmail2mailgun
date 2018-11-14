@@ -1,11 +1,14 @@
-##### sendmail2mailgun usecase configuration
-Defines a profile for a sendmail2mailgun use case
-Note: all definitions in this file are optional, define only the necessary. The values are extracted, not 
-      sourced.
+##### Global sendmail2mailgun configuration
+Note: all definitions in this file are optional, define only the necessary. All values can be overwritten by a eventual 
+      usecase definition, expect the folders. 
+      The values are extracted, not sourced. 
 
-### General
-# name: usecase name - included in the logs for log interpretation & forensics  
-name=""
+### Folders
+# mailgun_api_account_configurations_folder: absolute path of the folder where the Mailgun API account configuration files are
+mailgun_api_account_configurations_folder="/etc/sendmail2mailgun/mailgun_api_account_configurations"
+
+# usecase_configurations_folder: absolute path of the folder where the usecase configuration files are
+usecase_configurations_folder="/etc/sendmail2mailgun/usecase_configurations"
 
 ### Mailgun API account credentials
 # Provided by the Mailgun web interface
@@ -15,11 +18,6 @@ mailgun_domain="....mailgun.com"
 
 # mailgun_api_key: has the format of a 50 character string composed of alphanumeric characters and '-'
 mailgun_api_key=""
-
-# Important: mailgun_domain / mailgun_api_key  OR  mailgun_api_account_name
-
-# mailgun_api_account_name: name of the Mailgun API account configuration to use
-mailgun_api_account_name=""
 
 ### cURL settings
 # curl_connection_timeout: time given to cURL to establish the connection to Mailgun before failing, in seconds
@@ -31,7 +29,7 @@ curl_timeout=15
 ### Mailing defaults
 # In case static values are used for the sender, recipient(s) or subject they can be set here to avoid to
 # have to repeat them in the piped input on every call. If defaults are provided they are overwritten
-# by eventual piped input equivalents. Recipient can also be overwritten by a parameter.               
+# by eventual piped input equivalents. Recipient can also be overwritten by a parameter.
 
 # default_sender: 'From' field. Can be a email address or the format "Identity <mail@example.com>"
 default_sender=""
@@ -46,5 +44,5 @@ default_subject=""
 # log_filepath: absolute filepath of the log file location. To disable logging, set to "" or log_level to 0
 log_filepath="/var/log/sendmail2mailgun.log"
 
-# log_level: verbosity level, default is 1. Set to 0 to disable logging, to 2 to raise verbosity    
+# log_level: verbosity level, default is 1. Set to 0 to disable logging, to 2 to raise verbosity
 log_level=1
