@@ -493,7 +493,7 @@ fi
 
 if [ $test_mode -eq 1 ]; then
 	shortened_key="$(echo "$api_key" | cut -c1-5)"
-	printf "curl -s -v --user \"api:[key, starts with $shortened_key...]\" --connect-timeout 10 \n https://api.mailgun.net/v3/$domain/messages\n -F from=\"$sender\"\n -F to=\"$recipient_string\"\n -F \"subject= $subject\"\n -F \"$request_mail_body_parameter_name= $mail_body\""
+	printf "curl -s -v --user \"api:[key, starts with $shortened_key...]\" --connect-timeout $curl_connection_timeout --max-time $curl_timeout \n https://api.mailgun.net/v3/$domain/messages\n -F from=\"$sender\"\n -F to=\"$recipient_string\"\n -F \"subject= $subject\"\n -F \"$request_mail_body_parameter_name= $mail_body\""
 	echo ""
 	exit 0
 fi
