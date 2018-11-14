@@ -73,9 +73,10 @@ The filepath of a usecase configuration file is determined by, in order of prece
 
 A usecase configuration file may define:
 - `name`: useful for log analytics if a single global log is used
+- `mailgun_domain` and `mailgun_api_key`
 - `log_filepath` and `log_level`
 - `default_sender`, `default_recipient`, `default_subject`
-- `mailgun_api_account_name`
+- `mailgun_api_account_name` in case [Mailgun API account configurations](#mailgun-api-account-configurations) are used
 - `curl_connection_timeout` and `curl_timeout`
  
 ### Mailgun API account configurations
@@ -122,7 +123,7 @@ An overview of the internal parameter set and how the configurations apply - by 
 Mail
 - `sender` / `recipient` / `subject`:
 	+ extracted from the sendmail input (the details, especially regarding multiple recipients, are given 
-	[here](#sendmail-format-processing-details-|-multiple-recipients)
+	[here](#sendmail-format-processing-details--multiple-recipients)
 	+ `default_<x>`, where `x` is `sender` / `recipient` / `subject`, from a usecase configuration
 	+ `default_<x>` from the global configuration
 - `mail_body`: extracted from the sendmail input
@@ -132,10 +133,12 @@ Mailgun API account
 - `domain`
 	+ `--domain <domain>`
 	+ `domain` in a Mailgun account configuration
+	+ `mailgun_api_account_domain` in the usecase configuration
 	+ `mailgun_api_account_domain` in the global configuration
 - `api_key`
-	+ `--keyfile <filepath>`
+	+ content of the file referenced by `--keyfile <filepath>`
 	+ `key` in a Mailgun account configuration
+	+ `mailgun_api_account_key` in the usecase configuration
 	+ `mailgun_api_account_key` in the global configuration
 
 Logging 
@@ -159,7 +162,7 @@ cURL settings
 	+ `curl_connection_timeout` in the usecase configuration
 	+ `curl_connection_timeout` in the global configuration
 - `curl_timeout`
-	+ `curl_timeout` in a usecase configuration
+	+ `curl_timeout` in the usecase configuration
 	+ `curl_timeout` in the global configuration
 
 ## Sendmail format processing details | Multiple recipients
@@ -167,7 +170,7 @@ cURL settings
 as there's no match, that line and any subsequent ones are considered to be the mail's body. If there's 
 more than one *From* and/or *Subject* headers, the last one (higher line number) will prevail. Multiple *To* headers 
 are cumulated to build a comma separated email address list. The *To* headers themselves can be such lists. Recipients
-provided on the CLI (last parameter) and those provided as sendmail headers are aggregated, there's no duplicate check. 
+provided on the CLI (last parameter) and those provided as sendmail headers are aggregated; there's no duplicate check. 
 
 # Installer
 TODO 
