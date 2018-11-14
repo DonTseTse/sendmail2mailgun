@@ -175,3 +175,6 @@ provided on the CLI (last parameter) and those provided as sendmail headers are 
 # Installer
 TODO 
 By default, installs global configurtion to `/etc/sendmail2mailgun/main.conf`
+
+# TODO
+- implement tests
