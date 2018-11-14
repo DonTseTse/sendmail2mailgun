@@ -1,5 +1,8 @@
 #! /bin/bash
 
+# TODO
+# - user / permission aspects, check for file read/write
+
 ##### Configuration
 # configuration_filepath: default filepath of the global configuration. Can be modified by the installer
 configuration_filepath="/etc/sendmail2mailgun/main.conf"
@@ -35,6 +38,51 @@ function load_cfg_file_variable()
         fi
         echo "$(sanitize_variable_quotes "$val")"
 }
+
+### handle_configuration_value_load
+#
+# Parametrization
+#  $1 path of the configuration file
+#  $2 variable name in file
+#  $3 (optional) variable name in script - if omitted, $2 is used
+#  $4 (optional) secret mode, how many characters of the secret are shown
+function handle_configuration_value_load()
+{
+	local script_varname="${3:-$2}"
+	#echo "script varname: $script_varname - 2: $2 - 3: $3"
+        local val="$(load_cfg_file_variable "$1" "$2")"
+        if [ ! -z "$val" ]; then
+		# This bit weird cmd is required to force the creation of a global variable, not a local one (like "declare") 
+		# See https://stackoverflow.com/questions/9871458/declaring-global-variable-inside-a-function
+		IFS="" read $script_varname <<< "$val"
+		if [ ! -z "$4" ]; then
+			val="[Secret - begins with $(echo "$val" | cut -c1-5)]"
+		fi
+		log " - $script_varname set to '$val' (applying '$1', field '$2')" 2
+        fi
+}
+
+### load_configuration_profile
+#
+# Parametrization
+# $1 path of the configuration file
+function load_configuration_profile()
+{
+	# Mailgun account
+	handle_configuration_value_load "$1" "mailgun_domain" "domain"
+	handle_configuration_value_load "$1" "mailgun_api_key" "api_key" 5
+	# Mailing defaults
+	handle_configuration_value_load "$1" "default_sender"
+	handle_configuration_value_load "$1" "default_recipient"
+	handle_configuration_value_load "$1" "default_subject"
+	# Logging
+	handle_configuration_value_load "$1" "log_filepath"
+	handle_configuration_value_load "$1" "log_level"
+	# cURL
+	handle_configuration_value_load "$1" "curl_connection_timeout"
+	handle_configuration_value_load "$1" "curl_timeout"
+}
+
 
 ### log
 # Logging helper with support for prefix-aware multi-line output and independent stdout and file
@@ -209,9 +257,13 @@ mail_uses_html_body=0
 recipients=()
 test_mode=0
 executable_name="$(basename "$0")"
+curl_connection_timeout=5
+curl_timeout=15
 # Random ID for the run to be able to distinguish interleaving log entries if several processes run in parallel
 run_id=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ;)
-log "New run | ID: $run_id - Timestamp: $(date +"%d-%m-%Y %T")"
+timestamp="$(date +"%d-%m-%Y %T")"
+log "New run | ID in logs: $run_id - Timestamp: $timestamp" 1 stdout
+log "New run, started $timestamp" 1 file
 
 # Parameter processing
 log "Processing parameters..." 2
@@ -318,22 +370,20 @@ for parameter in "$@"; do
 	((parameter_idx++))
 done
 
+if [ $test_mode -eq 1 ]; then
+	stdout_log_level=0
+	log_level=0
+	runtime_log_level=0
+fi
+
 # Load "main" configuration if applicable
+log "Applying configurations..." 2
 if [ ! -z "$configuration_filepath" ]; then
 	if [ -f "$configuration_filepath" ]; then
-       		log_filepath="$(load_cfg_file_variable "$configuration_filepath" "log_filepath")"
-		log_level="$(load_cfg_file_variable "$configuration_filepath" "log_level")"
-		# Mailgun account
-		domain="$(load_cfg_file_variable "$configuration_filepath" "mailgun_domain")"
-        	api_key="$(load_cfg_file_variable "$configuration_filepath" "mailgun_api_key")"
+		load_configuration_profile "$configuration_filepath"
 		# "Subconfig" folders
-		mailgun_api_account_configurations_folder="$(load_cfg_file_variable "$configuration_filepath" "mailgun_api_account_configurations_folder")"
-		usecase_configurations_folder="$(load_cfg_file_variable "$configuration_filepath" "usecase_configurations_folder")"
-		# Mailing defaults - can be overwritten by a usecase configuration and runtime parameters
-		default_sender="$(load_cfg_file_variable "$configuration_filepath" "default_sender")"
-        	default_recipient="$(load_cfg_file_variable "$configuration_filepath" "default_recipient")"
-        	default_subject="$(load_cfg_file_variable "$configuration_filepath" "default_subject")"
-		log "Using global configuration file '$configuration_filepath'" 2
+		handle_configuration_value_load "$configuration_filepath" "mailgun_api_account_configurations_folder"
+		handle_configuration_value_load "$configuration_filepath" "usecase_configurations_folder"
 	else
 		log "Error: configuration file '$configuration_filepath' not found"
 	fi
@@ -341,8 +391,8 @@ fi
 
 # Usecase configuration: if applicable, compute composed filepath
 if [ -z "$usecase_configuration_filepath" ] && [ ! -z "$usecase_configurations_folder" ]; then
-	if [ ! -z "$usecase" ]; then
-		usecase_configuration_filepath="$usecase_configurations_folder/$usecase.conf"
+	if [ ! -z "$usecase_name" ]; then
+		usecase_configuration_filepath="$usecase_configurations_folder/$usecase_name.conf"
 	else
 		usecase_configuration_filepath="$(try_filepath_deduction "$usecase_configurations_folder" *.conf)"
 	fi
@@ -351,14 +401,9 @@ fi
 # Load usecase configuration
 if [ ! -z "$usecase_configuration_filepath" ]; then
 	if [ -f "$usecase_configuration_filepath" ]; then
-		usecase_name="$(load_cfg_file_variable "$usecase_configuration_filepath" "name")"
-		mailgun_api_account_name="$(load_cfg_file_variable "$usecase_configuration_filepath" "mailgun_api_account_name")"
-		log_filepath="$(load_cfg_file_variable "$usecase_configuration_filepath" "log_filepath")"
-		log_level="$(load_cfg_file_variable "$usecase_configuration_filepath" "log_level")"
-		default_sender="$(load_cfg_file_variable "$usecase_configuration_filepath" "default_sender")"
-		default_recipient="$(load_cfg_file_variable "$usecase_configuration_filepath" "default_recipient")"
-		default_subject="$(load_cfg_file_variable "$usecase_configuration_filepath" "default_subject")"
-		log "Using usecase configuration $usecase_configuration_filepath. Usecase is called '$usecase_name'" 2
+		load_configuration_profile "$usecase_configuration_filepath"
+		handle_configuration_value_load "$usecase_configuration_filepath" "name" "usecase_name"
+		handle_configuration_value_load "$usecase_configuration_filepath" "mailgun_api_account_name"
 	else
 		log "Error: usecase configuration '$usecase_configuration_filepath' not found"
 	fi
@@ -387,9 +432,8 @@ fi
 # Mailgun API account configuration load
 if [ ! -z "$mailgun_api_account_configuration_filepath" ]; then
 	if [ -f "$mailgun_api_account_configuration_filepath" ]; then
-		domain="$(load_cfg_file_variable "$mailgun_api_account_configuration_filepath" "domain")"
-		api_key="$(load_cfg_file_variable "$mailgun_api_account_configuration_filepath" "api_key")"
-		log "Using Mailgun API account configuration file '$mailgun_api_account_configuration_filepath'" 2
+		handle_configuration_value_load "$mailgun_api_account_configuration_filepath" "domain"
+		handle_configuration_value_load "$mailgun_api_account_configuration_filepath" "api_key" "api_key" 5
 	else
 		log "Error: Mailgun API account configuration file '$mailgun_api_account_configuration_filepath' not found"
 	fi
@@ -448,14 +492,16 @@ if [ -z "$sender" ] || [ -z "$recipient_string" ]; then
 fi
 
 if [ $test_mode -eq 1 ]; then
-printf "curl -s -v --user "api:$api_key" --connect-timeout 10 \n https://api.mailgun.net/v3/$domain/messages \n -F from="$sender" \n -F to="$recipient_string" \
-       "-F "subject= $subject" \n -F "$request_mail_body_parameter_name= $mail_body""
+	shortened_key="$(echo "$api_key" | cut -c1-5)"
+	printf "curl -s -v --user \"api:[key, starts with $shortened_key...]\" --connect-timeout 10 \n https://api.mailgun.net/v3/$domain/messages\n -F from=\"$sender\"\n -F to=\"$recipient_string\"\n -F \"subject= $subject\"\n -F \"$request_mail_body_parameter_name= $mail_body\""
+	echo ""
+	exit 0
 fi
 
 # launch API request
 curl_log_filepath="/tmp/sendmail2mailgun_${run_id}_curl.log"
 log "Launching request... Domain: $domain | Sender: $sender | Recipient(s): $recipient_string" 2
-curl_return=$(2>"$curl_log_filepath" curl -s -v --user "api:$api_key" --connect-timeout 10 \
+curl_return=$(2>"$curl_log_filepath" curl -s -v --user "api:$api_key" --connect-timeout $curl_connection_timeout --max-time $curl_timeout \
      https://api.mailgun.net/v3/$domain/messages \
      -F from="$sender" \
      -F to="$recipient_string" \
@@ -466,6 +512,7 @@ curl_return=$(2>"$curl_log_filepath" curl -s -v --user "api:$api_key" --connect-
      # interpreted as a bash file operation and breaks everything
 
 curl_status=$?
+api_key=""
 
 # process response
 if [ $curl_status -eq 0 ]; then
