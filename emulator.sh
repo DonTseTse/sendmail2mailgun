@@ -470,7 +470,7 @@ process_sendmail_formatted_input "piped_input"
 # process_sendmail_format() sets up $mail_body and, if the corresponding header are defined, $subject, $sender and the array $recipients
 subject="${subject:-$default_subject}"
 sender="${sender:-$default_sender}"
-recipient[0]="${recipient[0]:-$default_recipient}"
+recipient[0]="${recipient[0]:-$default_recipient_string}"
 
 # prepare Mailgun cURL request
 request_mail_body_parameter_name="text"

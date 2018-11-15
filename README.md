@@ -1,13 +1,13 @@
 # Introduction
-`sendmail2mailgun` is a bash script handling sendmail input to send mails over [Mailgun](https://www.mailgun.com/)'s 
+**sendmail2mailgun** is a bash script handling sendmail input to send mails over [Mailgun](https://www.mailgun.com/)'s 
 HTTP API. It can be a useful alternative ...
 - if the usual mailing infrastructure is not available or desirable, f.ex. in containerized environments
 - to avoid the hassle of mail client configuration and mail log monitoring
-`sendmail2mailgun` just needs a keyfile with the API key for the Mailgun account and it's ready to go. 
 
-Mailgun's API gives the advantage to have a definitive return status: a successful request is guaranteed to lead to a mail 
-delivery attempt - hence, if it's used with known recipients where mail bounces are not a problem (f.ex. system 
-notifications to a set of admin email adresses), it can be used without further monitoring. 
+`sendmail2mailgun` just needs a keyfile with the API key for the Mailgun account and it's ready to go. Mailgun's API 
+gives the advantage to have a definitive return status: a successful request is guaranteed to lead to a mail delivery 
+attempt - hence, if it's used with known recipients where mail bounces are not a problem (f.ex. system notifications 
+to a set of admin email adresses), it can be used without further monitoring. 
 
 The sendmail format encodes the mail variables as `<key>:<value>` headers, with everything else beeing the mail body: 
 ```
@@ -35,7 +35,7 @@ are explained in the [dedicated section](#flags).
 - Mailgun API account settings: domain + key
 - Log filepath and logging levels
 - Mailing defaults: sender, recipient(s), subject
-- cURL timeouts: globally, for connection setup
+- cURL timeouts: globally and for connection setup
 
 `sendmail2mailgun` is able to work in two different modes:
 - the "configuration file less" (called runtime) mode: the only file used is the keyfile for the Mailgun API account. 
@@ -43,7 +43,8 @@ are explained in the [dedicated section](#flags).
   without any decoration. 
 - the normal file-based mode, with a global configuration file and possible further ramifications
 
-The default mode can be selected at installation time and it can be overwritten at runtime with:
+The default mode can be selected at installation time (`install.sh`, see [How To](#how-to)). This can be overwritten at 
+runtime with:
 - `--cfg <filepath>` to switch to normal mode and read `filepath` as global configuration file
 - `--cfg ""` to switch to runtime mode
 
@@ -63,7 +64,7 @@ The path of the global configuration file is determined by, in order of precende
 A global configuration may define:
 - `mailgun_domain` and `mailgun_api_key`
 - `log_filepath` and `log_level`
-- `default_sender`, `default_recipient`, `default_subject`
+- `default_sender`, `default_recipient_string`, `default_subject`
 - `usecase_configurations_folder`
 - `mailgun_api_account_configurations_folder`
 - `curl_connection_timeout` and `curl_timeout`
@@ -80,10 +81,10 @@ The filepath of a usecase configuration file is determined by, in order of prece
 
 A usecase configuration file may define:
 - `name`: useful for log analytics if a single global log is used
-- `mailgun_domain` and `mailgun_api_key`
+- `mailgun_domain` and `mailgun_api_key` or `mailgun_api_account_name` in case 
+   [Mailgun API account configurations](#mailgun-api-account-configurations) are used
 - `log_filepath` and `log_level`
-- `default_sender`, `default_recipient`, `default_subject`
-- `mailgun_api_account_name` in case [Mailgun API account configurations](#mailgun-api-account-configurations) are used
+- `default_sender`, `default_recipient_string`, `default_subject`
 - `curl_connection_timeout` and `curl_timeout`
  
 ### Mailgun API account configurations
@@ -131,7 +132,7 @@ Mail
 - `sender` / `recipient` / `subject`:
 	+ extracted from the sendmail input (the details, especially regarding multiple recipients, are given 
 	[here](#sendmail-format-processing-details--multiple-recipients)
-	+ `default_<x>`, where `x` is `sender` / `recipient` / `subject`, from a usecase configuration
+	+ `default_<x>`, where `x` is `sender` / `recipient_string` / `subject`, from a usecase configuration
 	+ `default_<x>` from the global configuration
 - `mail_body`: extracted from the sendmail input
 - `mail_uses_html_body`: defaults to 0/false for a text body. Enable with the flag `--html`
@@ -177,12 +178,13 @@ cURL settings
 as there's no match, that line and any subsequent ones are considered to be the mail's body. If there's 
 more than one *From* and/or *Subject* headers, the last one (higher line number) will prevail. Multiple *To* headers 
 are cumulated to build a comma separated email address list. The *To* headers themselves can be such lists. Recipients
-provided on the CLI (last parameter) and those provided as sendmail headers are aggregated; there's no duplicate check. 
+provided on the CLI (last parameter `recipient_string`) and those provided as sendmail headers are aggregated; there's 
+no duplicate check. 
 
 # How To
 - clone this repository
 - decide which configuration mode you wish to use (see the [configuration section](#configuration) for details)
-- create a first configuration, either:
+- create either:
 	+ a file with the Mailgun API key written into it. The key can be found in the Mailgun web interface. This allows to run
 	  sendmail2mailgun just with `--domain <domain> --keyfile <filepath>` flags, no further configuration (files) needed
 	+ a global configuration (template provided in [configuration_templates/global.conf](configuration_templates/global.conf)
