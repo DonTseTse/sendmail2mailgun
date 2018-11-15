@@ -65,9 +65,9 @@ A global configuration may define:
 - `mailgun_domain` and `mailgun_api_key`
 - `log_filepath` and `log_level`
 - `default_sender`, `default_recipient_string`, `default_subject`
+- `curl_connection_timeout` and `curl_timeout`
 - `usecase_configurations_folder`
 - `mailgun_api_account_configurations_folder`
-- `curl_connection_timeout` and `curl_timeout`
 
 `usecase_configurations_folder` and `mailgun_api_account_configurations_folder` are used to locate the respective configuration 
 files, explained in the sections below. 
@@ -75,8 +75,8 @@ files, explained in the sections below.
 ### Usecase configurations
 The filepath of a usecase configuration file is determined by, in order of precedence:
 - the `--uc-cfg <filepath>` runtime flag
-- the `--uc <name>` runtime flag - in this case, the filepath is `usecase_configurations_folder/<name>.conf` where 
-  `usecase_configurations_folder` is defined in the global configuration file
+- the `--uc <name>` runtime flag - in this case, the filepath is `<name>.conf` inside the `usecase_configurations_folder` 
+  defined in the global configuration file
 - if `usecase_configurations_folder` is defined and there's only a single `.conf` file in it, this one is used
 
 A usecase configuration file may define:
@@ -92,8 +92,7 @@ The filepath of a Mailgun API account configuration file is determined by, in or
 - the `--mg-cfg <filepath>` runtime flag
 - if a usecase configuration specifies a `mailgun_api_account_name` and the global configuration defines a 
   `mailgun_api_account_configurations_folder`, the path is `<mailgun_api_account_name>.conf` in that folder
-- if `mailgun_api_account_configurations_folder` is defined in the global configuration file and there's only a single `.conf` file
-  in this folder, this one is used  
+- if `mailgun_api_account_configurations_folder` is defined and there's only a single `.conf` file in it, this one is used  
 
 A Mailgun API account configuration should define:
 - `domain`
@@ -149,6 +148,11 @@ Mailgun API account
 	+ `mailgun_api_account_key` in the usecase configuration
 	+ `mailgun_api_account_key` in the global configuration
 
+Configuration filepaths
+- `configuration_filepath`: explained in the [dedicated section](#global-configuration)
+- `usecase_configuration_filepath`: explained in the [dedicated section](#usecase-configurations)
+- `mailgun_api_account_configuration_filepath`: explained in the [dedicated section](#mailgun-api-account-configurations)
+
 Logging 
 - `log_filepath`: 
 	+ `--log-file <filepath>` flag
@@ -159,11 +163,6 @@ Logging
 	+ `log_level` in the usecase configuration
 	+ `log_level` in the global configuration
 - `stdout_log_level`: defaults to 0/disabled. The flag `-v` sets it to 1, `-vv` to 2
-
-Configuration filepaths
-- `configuration_filepath`: explained in the [dedicated section](#global-configuration)
-- `usecase_configuration_filepath`: explained in the [dedicated section](#usecase-configurations)
-- `mailgun_api_account_configuration_filepath`: explained in the [dedicated section](#mailgun-api-account-configurations)
 
 cURL settings
 - `curl_connection_timeout`
