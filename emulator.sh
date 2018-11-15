@@ -129,7 +129,7 @@ function launchLogging()
 	logging_available=1
 	local idx
 	local backlog_entry
-	local entry_output_resitriction
+	local entry_output_restriction
 	local entry_log_level
 	for idx in ${!logging_backlog[*]}; do
 		backlog_entry="${logging_backlog[$idx]}"
@@ -370,6 +370,7 @@ for parameter in "$@"; do
 	((parameter_idx++))
 done
 
+# test mode tweaks
 if [ $test_mode -eq 1 ]; then
 	stdout_log_level=0
 	log_level=0
@@ -396,6 +397,9 @@ if [ -z "$usecase_configuration_filepath" ] && [ ! -z "$usecase_configurations_f
 	else
 		usecase_configuration_filepath="$(try_filepath_deduction "$usecase_configurations_folder" *.conf)"
 	fi
+fi
+if [ ! -z "$usecase_name" ] && [ -z "$usecase_configuration_folder" ]; then
+	log "Warning: usecase '$usecase_name' requested but there's no global configuration or it contains no 'usecase_configurations_folder' definition. The usecase configuration file location is unknown without it."
 fi
 
 # Load usecase configuration
@@ -439,12 +443,18 @@ if [ ! -z "$mailgun_api_account_configuration_filepath" ]; then
 	fi
 fi
 
+# Apply precedence of runtime over configuration file values, load keyfile if applicable
 if [ ! -z "$runtime_domain" ]; then
 	domain="$runtime_domain"
 fi
-if [ ! -z "$keyfile" ]; then
-	if [ -f "$keyfile" ]; then
-		api_key=$(<"$keyfile")
+if [ ! -z "$key_filepath" ]; then
+	if [ -f "$key_filepath" ]; then
+		api_key=$(<"$key_filepath")
+		if [ ! -z api_key ]; then
+			log "Mailgun API keyfile $key_filepath read" 2
+		else
+			log "Warning: Mailgun API keyfile $key_filepath read but something went wrong" 2 
+		fi
 	else
 		log "Error: Mailgun API keyfile '$keyfile' not found"
 	fi
@@ -458,7 +468,7 @@ if [ ! -p /dev/stdin ]; then
 fi
 piped_input="$(cat)"
 
-# Minimal requirements
+# API access requirements
 if [ -z "$domain" ] || [ -z "$api_key" ]; then
 	stdout_log_level=1
 	log "Mailgun API domain and/or key missing. Domain value: '$domain'. Unable to send without that, aborting..."
@@ -466,31 +476,33 @@ if [ -z "$domain" ] || [ -z "$api_key" ]; then
 fi
 
 ################################  Process  ################################
-process_sendmail_formatted_input "piped_input"
 # process_sendmail_format() sets up $mail_body and, if the corresponding header are defined, $subject, $sender and the array $recipients
+# If a recipient_string was provided as parameter, it's conveyed as recipient[0] and extended here
+process_sendmail_formatted_input "piped_input"
+# fallback to defaults
 subject="${subject:-$default_subject}"
 sender="${sender:-$default_sender}"
 recipient[0]="${recipient[0]:-$default_recipient_string}"
 
-# prepare Mailgun cURL request
+# prepare Mailgun cURL request: choose "body type" and build definitive recipient_string
 request_mail_body_parameter_name="text"
 if [ $mail_uses_html_body -eq 1 ]; then
 	request_mail_body_parameter_name="html"
 fi
-
 recipient_string=""
 for recipient in ${recipients[*]}; do
 	recipient_string="$recipient,$recipient_string"
 done
-# remove last ','
-recipient_string="${recipient_string%?}"
+recipient_string="${recipient_string%?}"	# removes last ','
 
+# Mailing requirement check
 if [ -z "$sender" ] || [ -z "$recipient_string" ]; then
         stdout_log_level=1
         log "Sender and/or recipient(s) missing. Sender: '$sender', recipient(s): '$recipient_string'. Unable to send without that, aborting..."
         exit 1
 fi
 
+# test mode prints the cURL request that would have taken place (with the API key mostly hidden) and leaves
 if [ $test_mode -eq 1 ]; then
 	shortened_key="$(echo "$api_key" | cut -c1-5)"
 	printf "curl -s -v --user \"api:[key, starts with $shortened_key...]\" --connect-timeout $curl_connection_timeout --max-time $curl_timeout \n https://api.mailgun.net/v3/$domain/messages\n -F from=\"$sender\"\n -F to=\"$recipient_string\"\n -F \"subject= $subject\"\n -F \"$request_mail_body_parameter_name= $mail_body\""
