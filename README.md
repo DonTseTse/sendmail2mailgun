@@ -191,8 +191,8 @@ Global configuration
 - implement tests
 - improve installer
 
-#License
+# License
 
-Written in 2018 by DonTseTse.
+Written in 2018 by [DonTseTse](https://github.com/DonTseTse/).
 
 Licensed under the LGPL, Version 3.0
