@@ -176,5 +176,21 @@ provided on the CLI (last parameter) and those provided as sendmail headers are 
 TODO 
 By default, installs global configurtion to `/etc/sendmail2mailgun/main.conf`
 
+# How To
+- clone this repository
+- decide which configuration mode you wish to use (see the [configuration section](#configuration) for details)
+- create a first configuration, either:
+	+ a file with the Mailgun API key written into it. The key can be found in the Mailgun web interface. This allows to run
+	  sendmail2mailgun just with `--domain <domain> --keyfile <filepath>` flags, no further configuration (files) needed
+	+ a global configuration (template provided in [configuration_templates/global.conf](configuration_templates/global.conf])
+- protect this file (and any other with API keys)  with appropriate permissions
+
+Keyfile
+- run `installer.sh`, it will just check dependancies and give a few advices
+
+Global configuration
+- run `installer.sh path/to/config.file`
+
 # TODO
 - implement tests
+- improve installer
