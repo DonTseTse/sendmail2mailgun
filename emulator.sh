@@ -49,16 +49,16 @@ function load_cfg_file_variable()
 function handle_configuration_value_load()
 {
 	local script_varname="${3:-$2}"
-	#echo "script varname: $script_varname - 2: $2 - 3: $3"
         local val="$(load_cfg_file_variable "$1" "$2")"
         if [ ! -z "$val" ]; then
 		# This bit weird cmd is required to force the creation of a global variable, not a local one (like "declare") 
 		# See https://stackoverflow.com/questions/9871458/declaring-global-variable-inside-a-function
 		IFS="" read $script_varname <<< "$val"
+		local logval="$val"
 		if [ ! -z "$4" ]; then
-			val="[Secret - begins with $(echo "$val" | cut -c1-5)]"
+			logval="[Secret - begins with $(echo "$val" | cut -c1-5)]"
 		fi
-		log " - $script_varname set to '$val' (applying '$1', field '$2')" 2
+		log " - $script_varname set to '$logval' (applying '$1', field '$2')" 2
         fi
 }
 
@@ -456,7 +456,7 @@ if [ ! -z "$key_filepath" ]; then
 			log "Warning: Mailgun API keyfile $key_filepath read but something went wrong" 2 
 		fi
 	else
-		log "Error: Mailgun API keyfile '$keyfile' not found"
+		log "Error: Mailgun API keyfile '$key_filepath' not found"
 	fi
 fi
 
