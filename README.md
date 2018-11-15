@@ -172,10 +172,6 @@ more than one *From* and/or *Subject* headers, the last one (higher line number)
 are cumulated to build a comma separated email address list. The *To* headers themselves can be such lists. Recipients
 provided on the CLI (last parameter) and those provided as sendmail headers are aggregated; there's no duplicate check. 
 
-# Installer
-TODO 
-By default, installs global configurtion to `/etc/sendmail2mailgun/main.conf`
-
 # How To
 - clone this repository
 - decide which configuration mode you wish to use (see the [configuration section](#configuration) for details)
