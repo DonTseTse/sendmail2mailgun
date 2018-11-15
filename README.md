@@ -185,8 +185,14 @@ Keyfile
 - run `installer.sh`, it will just check dependancies and give a few advices
 
 Global configuration
-- run `installer.sh path/to/config.file`
+- run `installer.sh path/to/config.file` and follow the instructions on screen
 
 # TODO
 - implement tests
 - improve installer
+
+#License
+
+Written in 2018 by DonTseTse.
+
+Licensed under the LGPL, Version 3.0
