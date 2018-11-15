@@ -1,6 +1,13 @@
 # Introduction
 `sendmail2mailgun` is a bash script handling sendmail input to send mails over [Mailgun](https://www.mailgun.com/)'s 
-HTTP API. It can be a useful alternative if the usual mailing infrastructure is not available or desirable. 
+HTTP API. It can be a useful alternative ...
+- if the usual mailing infrastructure is not available or desirable, f.ex. in containerized environments
+- to avoid the hassle of mail client configuration and mail log monitoring
+`sendmail2mailgun` just needs a keyfile with the API key for the Mailgun account and it's ready to go. 
+
+Mailgun's API gives the advantage to have a definitive return status: a successful request is guaranteed to lead to a mail 
+delivery attempt - hence, if it's used with known recipients where mail bounces are not a problem (f.ex. system 
+notifications to a set of admin email adresses), it can be used without further monitoring. 
 
 The sendmail format encodes the mail variables as `<key>:<value>` headers, with everything else beeing the mail body: 
 ```
