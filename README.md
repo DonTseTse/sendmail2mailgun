@@ -118,7 +118,7 @@ By default, stdout logging is disabled (`stdout_log_level` set to 0) and file lo
 configured. 
 
 # Internals
-An overview of the internal parameter set and how the configurations apply - by order or precedence: 
+An overview of the internal parameter set and how the configurations apply - by order of precedence: 
 
 Mail
 - `sender` / `recipient` / `subject`:
@@ -178,7 +178,7 @@ provided on the CLI (last parameter) and those provided as sendmail headers are 
 - create a first configuration, either:
 	+ a file with the Mailgun API key written into it. The key can be found in the Mailgun web interface. This allows to run
 	  sendmail2mailgun just with `--domain <domain> --keyfile <filepath>` flags, no further configuration (files) needed
-	+ a global configuration (template provided in [configuration_templates/global.conf](configuration_templates/global.conf])
+	+ a global configuration (template provided in [configuration_templates/global.conf](configuration_templates/global.conf)
 - protect this file (and any other with API keys)  with appropriate permissions
 
 Keyfile
